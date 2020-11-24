@@ -1,0 +1,115 @@
+# T-Pot (Standard)
+# Do not erase ports sections, these are used by /opt/beehive/bin/rules.sh to setup iptables ACCEPT rules for NFQ (honeytrap / glutton)
+version: "2"
+
+networks:
+  cowrie_local:
+  ewsposter_local:
+
+services:
+  ##################
+  #### Honeypots
+  ##################
+
+  # Cowrie service
+  cowrie:
+    container_name: cowrie
+    restart: always
+    tmpfs:
+      - /tmp/cowrie:uid=2000,gid=2000
+      - /tmp/cowrie/data:uid=2000,gid=2000
+    networks:
+      - cowrie_local
+    ports:
+      - "22:22"
+      - "23:23"
+    image: "beehivesec/cowrie:linux-amd64"
+    read_only: true
+    volumes:
+      - /data/cowrie/downloads:/home/cowrie/cowrie/dl
+      - /data/cowrie/keys:/home/cowrie/cowrie/etc
+      - /data/cowrie/log:/home/cowrie/cowrie/log
+      - /data/cowrie/log/tty:/home/cowrie/cowrie/log/tty
+
+  # Suricata service
+  suricata:
+    container_name: suricata
+    restart: always
+    environment:
+      # For ET Pro ruleset replace "OPEN" with your OINKCODE
+      - OINKCODE=OPEN
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+      - NET_RAW
+    image: "beehivesec/suricata:linux-amd64"
+    volumes:
+      - /data/suricata/log:/var/log/suricata
+
+  #### ELK
+  ## Elasticsearch service
+  elasticsearch:
+    container_name: elasticsearch
+    restart: always
+    environment:
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+      - ES_TMPDIR=/tmp
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: 4g
+    ports:
+      - "127.0.0.1:64298:9200"
+    image: "beehivesec/elasticsearch:linux-amd64"
+    volumes:
+      - /data:/data
+
+  ## Kibana service
+  kibana:
+    container_name: kibana
+    restart: always
+    depends_on:
+      - elasticsearch
+    ports:
+      - "127.0.0.1:64296:5601"
+    image: "beehivesec/kibana:linux-amd64"
+
+  ## Logstash service
+  logstash:
+    container_name: logstash
+    env_file:
+      - elk_environment
+    restart: always
+    image: "beehivesec/logstash:linux-amd64"
+    volumes:
+      - /data:/data
+
+  ## Elasticsearch-head service
+  head:
+    container_name: head
+    restart: always
+    depends_on:
+      - elasticsearch
+    ports:
+      - "127.0.0.1:64302:9100"
+    image: "beehivesec/head:linux-amd64"
+    read_only: true
+
+  # Ewsposter service
+  ewsposter:
+    container_name: ewsposter
+    restart: always
+    networks:
+      - ewsposter_local
+    image: "beehivesec/ewsposter:linux-amd64"
+    volumes:
+      - /data:/data
+      - /data/ews/conf/ews.ip:/opt/ewsposter/ews.ip
