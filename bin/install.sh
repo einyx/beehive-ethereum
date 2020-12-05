@@ -12,7 +12,7 @@ PROGRESSBOXCONF=" --backtitle "$BACKTITLE" --progressbox 24 80"
 
 SITES="https://hub.docker.com https://gitlab.com"
 
-beehiveCOMPOSE="/opt/beehive-ethereumetc/compose/standard.yml"
+beehiveCOMPOSE="/opt/beehive-ethereum/etc/compose/standard.yml"
 
 LSB_STABLE_SUPPORTED="ubuntu"
 
@@ -76,10 +76,10 @@ Port 64295
 "
 CRONJOBS="
 # Check if updated images are available and download them
-27 1 * * *      root    docker-compose -f /opt/beehive-ethereumetc/beehive.yml pull
+27 1 * * *      root    docker-compose -f /opt/beehive-ethereum/etc/beehive.yml pull
 
 # Delete elasticsearch logstash indices older than 90 days
-27 4 * * *      root    curator --config /opt/beehive-ethereumetc/curator/curator.yml /opt/beehive-ethereumetc/curator/actions.yml
+27 4 * * *      root    curator --config /opt/beehive-ethereum/etc/curator/curator.yml /opt/beehive-ethereum/etc/curator/actions.yml
 
 # Uploaded binaries are not supposed to be downloaded
 */1 * * * *     root    mv --backup=numbered /data/dionaea/roots/ftp/* /data/dionaea/binaries/
@@ -265,8 +265,8 @@ addgroup --gid 2000 beehive
 adduser --system --no-create-home --uid 2000 --disabled-password --disabled-login --gid 2000 beehive
 
 # Lets set the hostname
-a=$(RANDOMWORD /opt/beehive-ethereumhost/usr/share/dict/a.txt)
-n=$(RANDOMWORD /opt/beehive-ethereumhost/usr/share/dict/n.txt)
+a=$(RANDOMWORD /opt/beehive-ethereum/host/usr/share/dict/a.txt)
+n=$(RANDOMWORD /opt/beehive-ethereum/host/usr/share/dict/n.txt)
 HOST=$a$n
 echo -e "${GREEN}✓${NULL}"  "Set hostname"
 hostnamectl set-hostname $HOST
@@ -286,7 +286,7 @@ sed -i '2i\auth requisite pam_succeed_if.so uid >= 1000' /etc/pam.d/cockpit
 case $CONF_beehive_FLAVOR in
   STANDARD)
     echo -e "${GREEN}✓${NULL}"  "STANDARD"
-    ln -s /opt/beehive-ethereumetc/compose/standard.yml $beehiveCOMPOSE
+    ln -s /opt/beehive-ethereum/etc/compose/standard.yml $beehiveCOMPOSE
   ;;
 esac
 
@@ -330,7 +330,7 @@ touch /data/nginx/log/error.log
 # Lets copy some files
 echo -e "${GREEN}✓${NULL}"  "Copy configs"
 tar xvfz /opt/beehive-etherum/etc/objects/elkbase.tgz -C /
-cp /opt/beehive-ethereumhost/etc/systemd/* /etc/systemd/system/
+cp /opt/beehive-ethereum/host/etc/systemd/* /etc/systemd/system/
 systemctl enable beehive
 
 # Lets take care of some files and permissions
@@ -346,24 +346,24 @@ sed -i 's#GRUB_CMDLINE_LINUX_DEFAULT="quiet"#GRUB_CMDLINE_LINUX_DEFAULT="quiet c
 sed -i 's#GRUB_CMDLINE_LINUX=""#GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"#' /etc/default/grub
 update-grub
 
-# Lets enable a color prompt and add /opt/beehive-ethereumbin to path
+# Lets enable a color prompt and add /opt/beehive-ethereum/bin to path
 echo -e "${GREEN}✓${NULL}"  "Setup prompt"
 tee -a /root/.bashrc <<EOF
 $ROOTPROMPT
 $ROOTCOLORS
-PATH="$PATH:/opt/beehive-ethereumbin"
+PATH="$PATH:/opt/beehive-ethereum/bin"
 EOF
 for i in $(ls -d /home/*/)
   do
 tee -a $i.bashrc <<EOF
 $USERPROMPT
-PATH="$PATH:/opt/beehive-ethereumbin"
+PATH="$PATH:/opt/beehive-ethereum/bin"
 EOF
 done
 
 # Lets create ews.ip before reboot and prevent race condition for first start
 echo -e "${GREEN}✓${NULL}"  "Update IP"
-/opt/beehive-ethereumbin/updateip.sh
+/opt/beehive-ethereum/bin/updateip.sh
 
 # Lets clean up apt-get
 echo -e "${GREEN}✓${NULL}"  "Clean up"
@@ -371,7 +371,7 @@ apt-get autoclean -y
 apt-get autoremove -y
 
 # Final steps
-cp /opt/beehive-ethereumhost/etc/rc.local /etc/rc.local && \
+cp /opt/beehive-ethereum/host/etc/rc.local /etc/rc.local && \
 rm -rf /root/installer && \
 rm -rf /etc/issue.d/cockpit.issue && \
 rm -rf /etc/motd.d/cockpit && \
