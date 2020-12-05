@@ -8,7 +8,7 @@ ADD . /opt/theo
 WORKDIR /opt/theo
 
 
-RUN apt update && apt -y install python3 python3-pip
+RUN apt update && apt -y install python3 python3-pip libssl-dev
 
 
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt

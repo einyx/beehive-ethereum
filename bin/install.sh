@@ -12,7 +12,7 @@ PROGRESSBOXCONF=" --backtitle "$BACKTITLE" --progressbox 24 80"
 
 SITES="https://hub.docker.com https://gitlab.com"
 
-beehiveCOMPOSE="/opt/beehive/etc/compose/standard.yml"
+beehiveCOMPOSE="/opt/beehive-ethereumetc/compose/standard.yml"
 
 LSB_STABLE_SUPPORTED="ubuntu"
 
@@ -76,10 +76,10 @@ Port 64295
 "
 CRONJOBS="
 # Check if updated images are available and download them
-27 1 * * *      root    docker-compose -f /opt/beehive/etc/beehive.yml pull
+27 1 * * *      root    docker-compose -f /opt/beehive-ethereumetc/beehive.yml pull
 
 # Delete elasticsearch logstash indices older than 90 days
-27 4 * * *      root    curator --config /opt/beehive/etc/curator/curator.yml /opt/beehive/etc/curator/actions.yml
+27 4 * * *      root    curator --config /opt/beehive-ethereumetc/curator/curator.yml /opt/beehive-ethereumetc/curator/actions.yml
 
 # Uploaded binaries are not supposed to be downloaded
 */1 * * * *     root    mv --backup=numbered /data/dionaea/roots/ftp/* /data/dionaea/binaries/
@@ -218,53 +218,6 @@ export TERM=linux
 CHECKNET "$REMOTESITES"
 
 
-OK="1"
-CONF_WEB_USER="webuser"
-CONF_WEB_PW="pass1"
-CONF_WEB_PW2="pass2"
-SECURE="0"
-while [ 1 != 2 ]
-  do
-    CONF_WEB_USER=$(dialog --keep-window --backtitle "$BACKTITLE" --title "[ Enter your web user name ]" --inputbox "\n" 9 50 3>&1 1>&2 2>&3 3>&-)
-    CONF_WEB_USER=$(echo -e $CONF_WEB_USER | tr -cd "[:alnum:]_.-")
-    dialog --keep-window --backtitle "$BACKTITLE" --title "[ Your username is ]" --yesno "\n$CONF_WEB_USER" 7 50
-    OK=$?
-  if [ "$OK" = "0" ] && [ "$CONF_WEB_USER" != "" ];
-    then
-      break
-  fi
-done
-while [ "$CONF_WEB_PW" != "$CONF_WEB_PW2"  ] && [ "$SECURE" == "0" ]
-  do
-    while [ "$CONF_WEB_PW" == "pass1"  ] || [ "$CONF_WEB_PW" == "" ]
-      do
-        CONF_WEB_PW=$(dialog --keep-window --insecure --backtitle "$BACKTITLE" \
-                        --title "[ Enter password for your web user ]" \
-                        --passwordbox "\nPassword" 9 60 3>&1 1>&2 2>&3 3>&-)
-      done
-    CONF_WEB_PW2=$(dialog --keep-window --insecure --backtitle "$BACKTITLE" \
-                    --title "[ Repeat password for your web user ]" \
-                    --passwordbox "\nPassword" 9 60 3>&1 1>&2 2>&3 3>&-)
-    if [ "$CONF_WEB_PW" != "$CONF_WEB_PW2" ];
-      then
-        echo -e "${GREEN}✓${NULL}"  "Please re-enter your password ..."
-        CONF_WEB_PW="pass1"
-        CONF_WEB_PW2="pass2"
-    fi
-    SECURE=$(printf "%s" "$CONF_WEB_PW" | cracklib-check | grep -c "OK")
-    if [ "$SECURE" == "0" ] && [ "$CONF_WEB_PW" == "$CONF_WEB_PW2" ];
-      then
-        echo -e "${GREEN}✓${NULL}"  "Password is not secure ..."
-        OK=$?
-        if [ "$OK" == "1" ];
-          then
-            CONF_WEB_PW="pass1"
-            CONF_WEB_PW2="pass2"
-        fi
-    fi
-  done
-
-
 dialog --clear
 
 ##########################
@@ -312,8 +265,8 @@ addgroup --gid 2000 beehive
 adduser --system --no-create-home --uid 2000 --disabled-password --disabled-login --gid 2000 beehive
 
 # Lets set the hostname
-a=$(RANDOMWORD /opt/beehive/host/usr/share/dict/a.txt)
-n=$(RANDOMWORD /opt/beehive/host/usr/share/dict/n.txt)
+a=$(RANDOMWORD /opt/beehive-ethereumhost/usr/share/dict/a.txt)
+n=$(RANDOMWORD /opt/beehive-ethereumhost/usr/share/dict/n.txt)
 HOST=$a$n
 echo -e "${GREEN}✓${NULL}"  "Set hostname"
 hostnamectl set-hostname $HOST
@@ -333,7 +286,7 @@ sed -i '2i\auth requisite pam_succeed_if.so uid >= 1000' /etc/pam.d/cockpit
 case $CONF_beehive_FLAVOR in
   STANDARD)
     echo -e "${GREEN}✓${NULL}"  "STANDARD"
-    ln -s /opt/beehive/etc/compose/standard.yml $beehiveCOMPOSE
+    ln -s /opt/beehive-ethereumetc/compose/standard.yml $beehiveCOMPOSE
   ;;
 esac
 
@@ -376,8 +329,8 @@ touch /data/nginx/log/error.log
 
 # Lets copy some files
 echo -e "${GREEN}✓${NULL}"  "Copy configs"
-tar xvfz /opt/beehive/etc/objects/elkbase.tgz -C /
-cp /opt/beehive/host/etc/systemd/* /etc/systemd/system/
+tar xvfz /opt/beehive-etherum/etc/objects/elkbase.tgz -C /
+cp /opt/beehive-ethereumhost/etc/systemd/* /etc/systemd/system/
 systemctl enable beehive
 
 # Lets take care of some files and permissions
@@ -393,24 +346,24 @@ sed -i 's#GRUB_CMDLINE_LINUX_DEFAULT="quiet"#GRUB_CMDLINE_LINUX_DEFAULT="quiet c
 sed -i 's#GRUB_CMDLINE_LINUX=""#GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"#' /etc/default/grub
 update-grub
 
-# Lets enable a color prompt and add /opt/beehive/bin to path
+# Lets enable a color prompt and add /opt/beehive-ethereumbin to path
 echo -e "${GREEN}✓${NULL}"  "Setup prompt"
 tee -a /root/.bashrc <<EOF
 $ROOTPROMPT
 $ROOTCOLORS
-PATH="$PATH:/opt/beehive/bin"
+PATH="$PATH:/opt/beehive-ethereumbin"
 EOF
 for i in $(ls -d /home/*/)
   do
 tee -a $i.bashrc <<EOF
 $USERPROMPT
-PATH="$PATH:/opt/beehive/bin"
+PATH="$PATH:/opt/beehive-ethereumbin"
 EOF
 done
 
 # Lets create ews.ip before reboot and prevent race condition for first start
 echo -e "${GREEN}✓${NULL}"  "Update IP"
-/opt/beehive/bin/updateip.sh
+/opt/beehive-ethereumbin/updateip.sh
 
 # Lets clean up apt-get
 echo -e "${GREEN}✓${NULL}"  "Clean up"
@@ -418,19 +371,13 @@ apt-get autoclean -y
 apt-get autoremove -y
 
 # Final steps
-cp /opt/beehive/host/etc/rc.local /etc/rc.local && \
+cp /opt/beehive-ethereumhost/etc/rc.local /etc/rc.local && \
 rm -rf /root/installer && \
 rm -rf /etc/issue.d/cockpit.issue && \
 rm -rf /etc/motd.d/cockpit && \
 rm -rf /etc/issue.net && \
 rm -rf /etc/motd && \
 systemctl restart console-setup.service
-
-
-echo -e "${GREEN}✓${NULL}"  "Webuser creds"
-mkdir -p /data/nginx/conf
-htpasswd -b -c /data/nginx/conf/nginxpasswd "$CONF_WEB_USER" "$CONF_WEB_PW"
-echo -e
 
 
 # Lets generate a SSL self-signed certificate without interaction (browsers will see it invalid anyway)

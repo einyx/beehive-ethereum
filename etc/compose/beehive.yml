@@ -10,7 +10,6 @@ services:
   ##################
   #### Honeypots
   ##################
-
   # Cowrie service
   cowrie:
     container_name: cowrie
